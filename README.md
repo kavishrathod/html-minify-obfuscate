@@ -2,7 +2,7 @@
 
 A lightweight, browser-based tool to **minify and obfuscate HTML files** — no server, no installs, no uploads. Everything runs locally in your browser.
 
-> Built for developers who want to protect their frontend code before deploying to GitHub Pages or any static host.
+> Built for developers who want to protect their frontend code before deploying to any static host.
 
 ---
 
