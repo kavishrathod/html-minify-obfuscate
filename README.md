@@ -15,7 +15,7 @@ A lightweight, browser-based tool to **minify and obfuscate HTML files** — no 
 - **100% Local** — your file never leaves your browser
 - **Drag & Drop** — just drop your `.html` file and go
 - **Size Stats** — shows original vs output size and % saved
-- **Single file** — the entire tool is one `index.html`, no dependencies to install
+- **Single file** — the entire tool is one `minify-obfuscate-tool.html`, no dependencies to install
 
 ---
 
@@ -48,7 +48,7 @@ open index.html
 
 ```
 html-minify-obfuscate/
-├── index.html      ← the entire tool (open this in browser)
+├── minify-obfuscate-tool.html      ← the entire tool (open this in browser)
 ├── README.md
 ├── LICENSE
 └── .gitignore
