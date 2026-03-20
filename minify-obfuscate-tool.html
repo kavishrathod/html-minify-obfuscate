@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Minify & Obfuscate — Local Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+<!-- Libraries loaded from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/javascript-obfuscator/4.0.0/index.browser.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#080808;
+  --surface:#0f0f0f;
+  --surface2:#141414;
+  --border:#1f1f1f;
+  --border2:#2a2a2a;
+  --text:#e2e2e2;
+  --muted:#555;
+  --muted2:#888;
+  --green:#22c55e;
+  --green-dim:#166534;
+  --amber:#f59e0b;
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Geist',sans-serif;
+  font-size:14px;
+  line-height:1.6;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:48px 20px 60px;
+}
+
+/* header */
+.header{text-align:center;margin-bottom:48px}
+.header-eyebrow{
+  font-family:'Geist Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+.header h1{
+  font-size:28px;
+  font-weight:600;
+  letter-spacing:-0.03em;
+  margin-bottom:8px;
+}
+.header p{color:var(--muted2);font-size:13px;max-width:380px;margin:0 auto}
+
+/* card */
+.card{
+  width:100%;
+  max-width:640px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+}
+
+/* drop zone */
+.drop-zone{
+  padding:40px 32px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  cursor:pointer;
+  transition:background 0.2s;
+  position:relative;
+}
+.drop-zone:hover,.drop-zone.drag-over{background:var(--surface2)}
+.drop-zone.drag-over{border-color:var(--border2)}
+
+.drop-icon{
+  width:44px;height:44px;
+  border:1px solid var(--border2);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  background:var(--surface2);
+  color:var(--muted2);
+}
+.drop-label{font-size:14px;font-weight:500;color:var(--muted2)}
+.drop-sub{font-family:'Geist Mono',monospace;font-size:11px;color:var(--muted)}
+#file-input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* file info */
+.file-info{
+  display:none;
+  align-items:center;
+  gap:12px;
+  padding:14px 20px;
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  font-family:'Geist Mono',monospace;
+  font-size:12px;
+  color:var(--muted2);
+}
+.file-info.show{display:flex}
+.file-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.file-name{color:var(--text);font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-size{color:var(--muted);flex-shrink:0}
+
+/* options */
+.options{padding:24px 24px 20px}
+.options-title{
+  font-family:'Geist Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:16px;
+}
+
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+.toggle-row:last-child{border-bottom:none}
+.toggle-info{}
+.toggle-label{font-size:13px;font-weight:500;margin-bottom:2px}
+.toggle-desc{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace}
+
+/* toggle switch */
+.switch{position:relative;width:36px;height:20px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{
+  position:absolute;inset:0;
+  background:#1e1e1e;
+  border:1px solid var(--border2);
+  border-radius:20px;
+  cursor:pointer;
+  transition:0.2s;
+}
+.slider::before{
+  content:'';
+  position:absolute;
+  width:12px;height:12px;
+  left:3px;top:3px;
+  background:var(--muted);
+  border-radius:50%;
+  transition:0.2s;
+}
+input:checked + .slider{background:#16301e;border-color:var(--green-dim)}
+input:checked + .slider::before{transform:translateX(16px);background:var(--green)}
+
+/* intensity slider */
+.intensity-row{
+  padding:14px 0 4px;
+  border-bottom:1px solid var(--border);
+}
+.intensity-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.intensity-label{font-size:13px;font-weight:500}
+.intensity-val{
+  font-family:'Geist Mono',monospace;
+  font-size:11px;
+  color:var(--green);
+  background:#16301e;
+  border:1px solid var(--green-dim);
+  padding:2px 8px;
+  border-radius:4px;
+}
+input[type=range]{
+  width:100%;
+  -webkit-appearance:none;
+  height:3px;
+  background:var(--border2);
+  border-radius:2px;
+  outline:none;
+  cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:14px;height:14px;
+  border-radius:50%;
+  background:var(--green);
+  cursor:pointer;
+}
+
+/* action button */
+.actions{padding:20px 24px;border-top:1px solid var(--border)}
+.btn{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:7px;
+  font-family:'Geist Mono',monospace;
+  font-size:12px;
+  font-weight:500;
+  letter-spacing:0.05em;
+  cursor:pointer;
+  transition:opacity 0.2s, transform 0.1s;
+}
+.btn:active{transform:scale(0.98)}
+.btn-primary{
+  background:var(--green);
+  color:#000;
+}
+.btn-primary:hover{opacity:0.9}
+.btn-primary:disabled{opacity:0.35;cursor:not-allowed;transform:none}
+.btn-secondary{
+  background:var(--surface2);
+  color:var(--text);
+  border:1px solid var(--border2);
+  margin-top:10px;
+}
+.btn-secondary:hover{border-color:#444}
+.btn-secondary:disabled{opacity:0.3;cursor:not-allowed}
+
+/* progress */
+.progress{
+  display:none;
+  padding:0 24px 16px;
+  font-family:'Geist Mono',monospace;
+  font-size:11px;
+  color:var(--muted2);
+}
+.progress.show{display:block}
+.progress-bar-wrap{
+  height:2px;
+  background:var(--border);
+  border-radius:2px;
+  margin-bottom:8px;
+  overflow:hidden;
+}
+.progress-bar{
+  height:100%;
+  background:var(--green);
+  width:0%;
+  transition:width 0.3s;
+  border-radius:2px;
+}
+.progress-steps{display:flex;flex-direction:column;gap:4px}
+.step{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.step.done{color:var(--muted2)}
+.step.active{color:var(--green)}
+.step-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* result */
+.result{
+  display:none;
+  padding:16px 24px;
+  border-top:1px solid var(--border);
+}
+.result.show{display:block}
+.result-stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-bottom:16px;
+}
+.stat{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:7px;
+  padding:12px;
+  text-align:center;
+}
+.stat-val{
+  font-family:'Geist Mono',monospace;
+  font-size:16px;
+  font-weight:500;
+  color:var(--text);
+  margin-bottom:2px;
+}
+.stat-val.green{color:var(--green)}
+.stat-label{font-size:10px;color:var(--muted);font-family:'Geist Mono',monospace;letter-spacing:0.06em;text-transform:uppercase}
+
+/* notice */
+.notice{
+  font-family:'Geist Mono',monospace;
+  font-size:11px;
+  color:var(--muted);
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:10px 12px;
+  margin-top:16px;
+  line-height:1.7;
+}
+.notice span{color:var(--amber)}
+
+@media(max-width:480px){
+  .result-stats{grid-template-columns:repeat(2,1fr)}
+  body{padding:32px 12px 48px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">Local Browser Tool</div>
+  <h1>Minify & Obfuscate</h1>
+  <p>Upload your HTML file. Everything runs in your browser — nothing is uploaded anywhere.</p>
+</div>
+
+<div class="card">
+
+  <!-- DROP ZONE -->
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="file-input" accept=".html,.htm"/>
+    <div class="drop-icon">⬆</div>
+    <div class="drop-label">Drop your HTML file here</div>
+    <div class="drop-sub">or click to browse</div>
+  </div>
+
+  <!-- FILE INFO -->
+  <div class="file-info" id="fileInfo">
+    <div class="file-dot"></div>
+    <span class="file-name" id="fileName">—</span>
+    <span class="file-size" id="fileSize">—</span>
+  </div>
+
+  <!-- OPTIONS -->
+  <div class="options">
+    <div class="options-title">Options</div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">Minify HTML & CSS</div>
+        <div class="toggle-desc">Remove whitespace, comments, collapse rules</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="opt-minify" checked/>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">Obfuscate JavaScript</div>
+        <div class="toggle-desc">Mangle var names, encode strings, flatten flow</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="opt-obfuscate" checked/>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">Dead Code Injection</div>
+        <div class="toggle-desc">Insert fake unreachable code to confuse readers</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="opt-deadcode" checked/>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="intensity-row">
+      <div class="intensity-header">
+        <span class="intensity-label">Obfuscation Intensity</span>
+        <span class="intensity-val" id="intensity-label">Medium</span>
+      </div>
+      <input type="range" id="intensity" min="1" max="3" value="2"/>
+    </div>
+
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress" id="progress">
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-steps" id="progressSteps"></div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="btn btn-primary" id="btn-run" disabled>Select a file first</button>
+    <button class="btn btn-secondary" id="btn-download" disabled style="display:none">⬇ Download Obfuscated File</button>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result" id="result">
+    <div class="result-stats">
+      <div class="stat">
+        <div class="stat-val" id="stat-original">—</div>
+        <div class="stat-label">Original</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="stat-final">—</div>
+        <div class="stat-label">Output</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val green" id="stat-saving">—</div>
+        <div class="stat-label">Saved</div>
+      </div>
+    </div>
+    <div class="notice">
+      <span>✓</span> File processed entirely in your browser.<br/>
+      <span>✓</span> Your code was never sent to any server.<br/>
+      <span>⚠</span> Keep your original file for future edits.
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── STATE ── */
+let fileContent = null;
+let fileName = null;
+let outputBlob = null;
+
+/* ── FILE INPUT ── */
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+function loadFile(f) {
+  if (!f.name.match(/\.html?$/i)) { alert('Please upload an HTML file.'); return; }
+  fileName = f.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fileContent = e.target.result;
+    document.getElementById('fileName').textContent = f.name;
+    document.getElementById('fileSize').textContent = formatBytes(f.size);
+    document.getElementById('fileInfo').classList.add('show');
+    const btn = document.getElementById('btn-run');
+    btn.disabled = false;
+    btn.textContent = '▶ Run Minify & Obfuscate';
+    // reset
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('btn-download').style.display = 'none';
+    document.getElementById('progress').classList.remove('show');
+    outputBlob = null;
+  };
+  reader.readAsText(f);
+}
+
+/* ── INTENSITY LABEL ── */
+const intensitySlider = document.getElementById('intensity');
+const intensityLabel = document.getElementById('intensity-label');
+const labels = {1:'Low',2:'Medium',3:'High'};
+intensitySlider.addEventListener('input', () => {
+  intensityLabel.textContent = labels[intensitySlider.value];
+});
+
+/* ── HELPERS ── */
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(2) + ' MB';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function animateSteps(steps) {
+  const container = document.getElementById('progressSteps');
+  const bar = document.getElementById('progressBar');
+  container.innerHTML = '';
+  const els = steps.map((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'step';
+    el.innerHTML = `<div class="step-dot"></div><span>${s}</span>`;
+    container.appendChild(el);
+    return el;
+  });
+  for (let i = 0; i < els.length; i++) {
+    if (i > 0) els[i-1].classList.remove('active');
+    if (i > 0) els[i-1].classList.add('done');
+    els[i].classList.add('active');
+    bar.style.width = ((i+1)/els.length*100) + '%';
+    await sleep(280);
+  }
+  els[els.length-1].classList.remove('active');
+  els[els.length-1].classList.add('done');
+  bar.style.width = '100%';
+}
+
+/* ── MINIFY HTML + CSS ── */
+function minifyHTML(html) {
+  // remove HTML comments
+  html = html.replace(/<!--[\s\S]*?-->/g, '');
+  // collapse whitespace between tags
+  html = html.replace(/>\s+</g, '><');
+  // collapse multiple spaces (but not inside <pre>/<script>/<style>)
+  html = html.replace(/([^>])\s{2,}/g, '$1 ');
+  // remove blank lines
+  html = html.replace(/\n\s*\n/g, '\n');
+  return html.trim();
+}
+
+function minifyCSS(css) {
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');  // comments
+  css = css.replace(/\s*([{};:,>~+])\s*/g, '$1'); // around special chars
+  css = css.replace(/\s+/g, ' ');               // collapse whitespace
+  css = css.replace(/;}/g, '}');                // remove trailing semicolons
+  return css.trim();
+}
+
+/* ── OBFUSCATE JS ── */
+function obfuscateJS(js, level) {
+  const cfThreshold    = level === 1 ? 0.2 : level === 2 ? 0.5 : 0.75;
+  const deadThreshold  = level === 1 ? 0   : level === 2 ? 0.3 : 0.5;
+  const strThreshold   = level === 1 ? 0.5 : level === 2 ? 0.75 : 0.9;
+
+  return JavaScriptObfuscator.obfuscate(js, {
+    compact: true,
+    controlFlowFlattening: level >= 2,
+    controlFlowFlatteningThreshold: cfThreshold,
+    deadCodeInjection: document.getElementById('opt-deadcode').checked && level >= 2,
+    deadCodeInjectionThreshold: deadThreshold,
+    identifierNamesGenerator: 'mangled',
+    renameGlobals: false,
+    stringArray: true,
+    stringArrayEncoding: level >= 2 ? ['base64'] : ['none'],
+    stringArrayThreshold: strThreshold,
+    transformObjectKeys: level >= 2,
+    selfDefending: false,
+    debugProtection: false,
+  }).getObfuscatedCode();
+}
+
+/* ── MAIN PROCESS ── */
+document.getElementById('btn-run').addEventListener('click', async () => {
+  if (!fileContent) return;
+
+  const doMinify    = document.getElementById('opt-minify').checked;
+  const doObfuscate = document.getElementById('opt-obfuscate').checked;
+  const level       = parseInt(intensitySlider.value);
+
+  const runBtn = document.getElementById('btn-run');
+  runBtn.disabled = true;
+  runBtn.textContent = 'Processing…';
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('btn-download').style.display = 'none';
+  document.getElementById('progress').classList.add('show');
+
+  const steps = [];
+  if (doMinify) steps.push('Minifying HTML structure', 'Compressing CSS rules');
+  if (doObfuscate) steps.push('Extracting JavaScript', 'Obfuscating JS — mangling names', 'Encoding string arrays', 'Injecting dead code');
+  steps.push('Assembling final file');
+
+  // run animation concurrently with actual work
+  const animPromise = animateSteps(steps);
+  await sleep(100);
+
+  let html = fileContent;
+  const originalSize = new Blob([html]).size;
+
+  // ── MINIFY CSS inside <style> tags ──
+  if (doMinify) {
+    html = html.replace(/<style>([\s\S]*?)<\/style>/gi, (_, css) => {
+      return `<style>${minifyCSS(css)}</style>`;
+    });
+  }
+
+  // ── EXTRACT + PROCESS JS inside <script> tags ──
+  if (doObfuscate) {
+    html = html.replace(/<script>([\s\S]*?)<\/script>/gi, (_, js) => {
+      try {
+        const obf = obfuscateJS(js.trim(), level);
+        return `<script>${obf}<\/script>`;
+      } catch(e) {
+        console.warn('Obfuscation error:', e);
+        return `<script>${js}<\/script>`;
+      }
+    });
+  }
+
+  // ── MINIFY HTML ──
+  if (doMinify) {
+    html = minifyHTML(html);
+  }
+
+  await animPromise;
+  await sleep(150);
+
+  const finalSize = new Blob([html]).size;
+  const saving = ((1 - finalSize/originalSize)*100).toFixed(1);
+
+  // store output
+  outputBlob = new Blob([html], {type:'text/html'});
+
+  // show stats
+  document.getElementById('stat-original').textContent = formatBytes(originalSize);
+  document.getElementById('stat-final').textContent = formatBytes(finalSize);
+  document.getElementById('stat-saving').textContent = saving + '%';
+  document.getElementById('result').classList.add('show');
+
+  // show download
+  const dlBtn = document.getElementById('btn-download');
+  dlBtn.style.display = 'block';
+  dlBtn.disabled = false;
+
+  runBtn.disabled = false;
+  runBtn.textContent = '↺ Process Again';
+});
+
+/* ── DOWNLOAD ── */
+document.getElementById('btn-download').addEventListener('click', () => {
+  if (!outputBlob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(outputBlob);
+  const base = fileName.replace(/\.html?$/i, '');
+  a.download = base + '.min.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+</script>
+
+</body>
+</html>
